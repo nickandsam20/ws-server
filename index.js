@@ -47,7 +47,7 @@ wss.on('connection', ws => {
       let clients = wss.clients;
       data=JSON.parse(data);
       console.log('event is '+data.event);
-      console.log(data);
+      //console.log(data);
       //console.log('client '+ws.id+' say '+data.data);
       switch (data.event) {
         case 'join_room':
@@ -55,8 +55,8 @@ wss.on('connection', ws => {
                 ws.room=data.room;
                 room.forEach(r=>{
                       if(r.room==ws.room){
-                          console.log("room exist");
-                          console.log(r);
+                          //console.log("room exist");
+                          //console.log(r);
 
                           console.log("send user info to master");
                           //將新加入的用戶資料送給master
@@ -77,8 +77,8 @@ wss.on('connection', ws => {
                               msg.event="device_join";
                               msg.data={user_name:ws.name, track:ws.track,  uid:ws.uid};
                               d.ws.send(JSON.stringify(msg));
-                              console.log("send msg to ",d.user_name);
-                              console.log(msg);
+                            //  console.log("send msg to ",d.user_name);
+                            //  console.log(msg);
                               //將原本就在房間裡用戶的資料送給正要加入的用戶
                               let msg2={};
                               msg2.event="device_join";
@@ -139,6 +139,20 @@ wss.on('connection', ws => {
               }
         })
         break;
+
+        case "all_start":
+          room.forEach(r=>{
+              if(r.room==ws.room){
+                let msg={};
+                msg.event="start";
+                r.device.forEach(d=>{
+                  d.ws.send(JSON.stringify(msg));
+                })
+              }
+          })
+        break;
+
+
         case 'send':
             console.log(ws.id+' want to send message '+data.data+' to '+data.recieve_id);
             //let clients = wss.clients;
