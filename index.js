@@ -40,7 +40,8 @@ wss.on('connection', ws => {
     ws.track=-1;
     console.log('Client '+ws.name+' connected')
     //對 message 設定監聽，接收從 Client 發送的訊息
-
+    let index=-1;
+    let i=0;
   ws.on('message', data => {
       //data 為 Client 發送的訊息，現在將訊息原封不動發送出去
       //ws.send(data)
@@ -61,7 +62,7 @@ wss.on('connection', ws => {
                           console.log("send user info to master");
                           //將新加入的用戶資料送給master
                           let length=r.device.length;
-                          ws.track=length+1;
+                          ws.track=r.number.pop();
                           let msg={};
                           msg.event="device_join";
                           msg.data={user_name:ws.name, track:ws.track ,uid:ws.uid};
@@ -87,7 +88,11 @@ wss.on('connection', ws => {
                               console.log("send msg to ",ws.name);
                               console.log(msg2);
                           })
-                            r.device.push({ws:ws,user_name:ws.name,track:ws.track})
+                            r.device.push({ws:ws,user_name:ws.name,track:ws.track,uid:ws.uid})
+                            let msg3={};
+                            msg3.event="device_join";
+                            msg3.data={user_name:ws.user_name, track:ws.track ,uid:ws.uid};
+                            ws.send(JSON.stringify(msg3));
                           return false;
                       }
                 })
@@ -114,7 +119,7 @@ wss.on('connection', ws => {
         break;
         case 'create_room':
             ws.room=data.room;
-              room.push({room:data.room, master:{ws:ws,  user_name:"master"},device:[]});
+              room.push({room:data.room, master:{ws:ws,  user_name:"master"},device:[], number:[3,2,1], disconnected_device:[] });
             console.log("create room");
         break;
 
@@ -128,13 +133,13 @@ wss.on('connection', ws => {
                   r.master.ws.send(JSON.stringify(msg));
                   r.device.forEach(d=>{
                         //d是已經在房間的device
-                        if(d.ws==ws){
-                          d.user_name=data.new_name;
-                          console.log("me");
-                        }else{
+                        // if(d.ws==ws){
+                        //   d.user_name=data.new_name;
+                        //   console.log("me");
+                        // }else{
                           console.log("send to origin recorder");
                           d.ws.send(JSON.stringify(msg));
-                        }
+                        // }
                   })
                   return false;
               }
@@ -173,17 +178,57 @@ wss.on('connection', ws => {
 
         case "all_close":
           console.log("all close");
+           index=-1;
+           i=0;
           room.forEach(r=>{
               if(r.room==ws.room){
                 let msg={};
-                msg.event="stop";
+                msg.event="all_close";
                 r.device.forEach(d=>{
                   d.ws.send(JSON.stringify(msg));
                 })
                 return false;
+                index=i;
+              }
+              i++;
+          })
+          if(index>=0)room.splice(index,1);
+        break;
+
+        case "close":
+          console.log("one close");
+           index=-1;
+           i=0;
+          room.forEach(r=>{
+              if(r.room==ws.room){
+                  let msg={};
+                  msg.event="device_leave";
+                  msg.uid=ws.uid;
+                  console.log("master ",r.master.user_name);
+                  r.master.ws.send(JSON.stringify(msg));
+                  r.device.forEach(d=>{
+                    if(d.uid!=ws.uid){
+                    //  console.log("not equal");
+                      d.ws.send(JSON.stringify(msg));
+                      i++
+                    }
+                    else{
+                      index=i;
+                      //console.log("euq");
+                      r.disconnected_device.push(d);
+                      r.number.push(d.track);
+                      r.number=r.number.sort(function (a, b) {
+                        return b - a //順序反轉
+                      });
+                      console.log(r.number);
+                    }
+                  })
+                if(index>=0)room.splice(index,1);  r.device.splice(index,1);
+                return false;
               }
           })
-        break;
+        break
+
         case 'send':
             console.log(ws.id+' want to send message '+data.data+' to '+data.recieve_id);
             //let clients = wss.clients;
