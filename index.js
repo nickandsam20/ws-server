@@ -141,6 +141,7 @@ wss.on('connection', ws => {
         break;
 
         case "all_start":
+          console.log("all start");
           room.forEach(r=>{
               if(r.room==ws.room){
                 let msg={};
@@ -152,7 +153,32 @@ wss.on('connection', ws => {
           })
         break;
 
+        case "all_stop":
+          console.log("all stop");
+          room.forEach(r=>{
+              if(r.room==ws.room){
+                let msg={};
+                msg.event="stop";
+                r.device.forEach(d=>{
+                  d.ws.send(JSON.stringify(msg));
+                })
+              }
+          })
+        break;
 
+        case "all_close":
+          console.log("all close");
+          room.forEach(r=>{
+              if(r.room==ws.room){
+                let msg={};
+                msg.event="stop";
+                r.device.forEach(d=>{
+                  d.ws.send(JSON.stringify(msg));
+                })
+                return false;
+              }
+          })
+        break;
         case 'send':
             console.log(ws.id+' want to send message '+data.data+' to '+data.recieve_id);
             //let clients = wss.clients;
