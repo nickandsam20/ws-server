@@ -113,7 +113,8 @@ wss.on('connection', ws => {
                 // })
         break;
         case 'create_room':
-            room.push({room:data.room, master:{ws:ws,  user_name:"master"},device:[]});
+            ws.room=data.room;
+              room.push({room:data.room, master:{ws:ws,  user_name:"master"},device:[]});
             console.log("create room");
         break;
 
@@ -142,13 +143,17 @@ wss.on('connection', ws => {
 
         case "all_start":
           console.log("all start");
+
           room.forEach(r=>{
               if(r.room==ws.room){
+                console.log("room find");
                 let msg={};
                 msg.event="start";
                 r.device.forEach(d=>{
+                    console.log("send to ",d.user_name);
                   d.ws.send(JSON.stringify(msg));
                 })
+
               }
           })
         break;
